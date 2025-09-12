@@ -4,7 +4,11 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import type { User } from '@shared/schema';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'erp-secret-key-change-in-production';
+// Use JWT_SECRET if available, fallback to SESSION_SECRET for now
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("Either JWT_SECRET or SESSION_SECRET environment variable is required for security");
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthenticatedRequest extends Request {
@@ -17,6 +21,13 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+  role?: string; // Role is ignored for security - all public registrations become students
+}
+
+export interface AdminCreateUserData {
   email: string;
   password: string;
   name: string;
@@ -69,7 +80,7 @@ export class AuthService {
     }
   }
 
-  // Register new user
+  // Register new user (public registration - students only)
   async register(data: RegisterData): Promise<AuthResponse> {
     // Check if user already exists
     const existingUser = await storage.getUserByEmail(data.email);
@@ -77,20 +88,19 @@ export class AuthService {
       throw new Error('User with this email already exists');
     }
 
-    // Validate role
-    if (!['admin', 'staff', 'student'].includes(data.role)) {
-      throw new Error('Invalid role specified');
-    }
+    // SECURITY: Force student role for public registration
+    // Admin/Staff accounts must be created by administrators only
+    const secureRole = 'student';
 
     // Hash password
     const hashedPassword = await this.hashPassword(data.password);
 
-    // Create user
+    // Create user with student role only
     const user = await storage.createUser({
       email: data.email,
       passwordHash: hashedPassword,
       name: data.name,
-      role: data.role,
+      role: secureRole,
       isActive: true,
     });
 

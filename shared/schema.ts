@@ -53,6 +53,18 @@ export const transcripts = pgTable("transcripts", {
   createdAt: timestamp("created_at").default(sql`now()`),
 });
 
+// Student-Course Enrollments (Critical for Academic Module)
+export const enrollments = pgTable("enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => users.id),
+  courseId: varchar("course_id").notNull().references(() => courses.id),
+  status: text("status").notNull().default('enrolled'), // 'enrolled', 'dropped', 'completed'
+  enrollmentDate: timestamp("enrollment_date").default(sql`now()`),
+  completionDate: timestamp("completion_date"),
+  grade: text("grade"), // Final grade when completed
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
 export const attendance = pgTable("attendance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => users.id),
@@ -283,8 +295,15 @@ export const insertInventorySchema = createInsertSchema(inventory).omit({
   createdAt: true,
 });
 
+export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
+export type Enrollment = typeof enrollments.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
