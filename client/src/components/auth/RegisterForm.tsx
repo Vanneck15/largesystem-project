@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, UserPlus, Building, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { register as mockRegister, type AuthUser } from "@/lib/mock-auth";
 
 interface RegisterFormProps {
   onRegister: (token: string, user: any) => void;
@@ -15,12 +16,7 @@ interface RegisterFormProps {
 }
 
 interface RegisterResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
+  user: AuthUser;
   token: string;
 }
 
@@ -35,30 +31,19 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
   const { toast } = useToast();
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; name: string; role: string }) => {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Registration failed");
-      }
-      
-      return response.json() as Promise<RegisterResponse>;
+    mutationFn: async (data: { email: string; password: string; name: string; role: string }): Promise<RegisterResponse> => {
+      return mockRegister(data.name, data.email, data.password, "student");
     },
     onSuccess: (data) => {
       toast({
-        title: "Registration Successful",
-        description: `Welcome to ERP System, ${data.user.name}!`,
+        title: "Inscription réussie",
+        description: `Bienvenue sur le système ERP, ${data.user.name} !`,
       });
       onRegister(data.token, data.user);
     },
     onError: (error: Error) => {
       toast({
-        title: "Registration Failed",
+        title: "Échec de l'inscription",
         description: error.message,
         variant: "destructive",
       });
@@ -71,8 +56,8 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
     // Validation
     if (!formData.email || !formData.password || !formData.name) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Erreur",
+        description: "Merci de remplir tous les champs requis",
         variant: "destructive",
       });
       return;
@@ -80,8 +65,8 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas",
         variant: "destructive",
       });
       return;
@@ -89,8 +74,8 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
 
     if (formData.password.length < 6) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins 6 caractères",
         variant: "destructive",
       });
       return;
@@ -119,41 +104,41 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
             data-testid="button-back-to-login"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Login
+            Retour à la connexion
           </Button>
           
           <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
             <Building className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
           <CardDescription>
-            Join the ERP system and get access to all modules
+            Rejoignez le système ERP et accédez à tous les modules
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Nom complet</Label>
               <Input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="Votre nom complet"
                 required
                 data-testid="input-name"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Adresse email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter your email"
+                placeholder="Votre adresse email"
                 required
                 data-testid="input-email"
               />
@@ -161,20 +146,20 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
 
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-800">
-                <strong>Student Account:</strong> New registrations create student accounts. 
-                Contact your administrator for staff or admin access.
+                <strong>Compte étudiant :</strong> Les nouvelles inscriptions créent des comptes étudiants.
+                Contactez votre administrateur pour un accès staff ou admin.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Votre mot de passe"
                   required
                   data-testid="input-password"
                 />
@@ -192,13 +177,13 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                placeholder="Confirm your password"
+                placeholder="Confirmez votre mot de passe"
                 required
                 data-testid="input-confirm-password"
               />
@@ -207,7 +192,7 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
             {registerMutation.isError && (
               <Alert variant="destructive">
                 <AlertDescription>
-                  {registerMutation.error?.message || "An error occurred during registration"}
+                  {registerMutation.error?.message || "Une erreur est survenue lors de l'inscription"}
                 </AlertDescription>
               </Alert>
             )}
@@ -221,12 +206,12 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
               {registerMutation.isPending ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Creating Account...</span>
+                  <span>Création en cours…</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <UserPlus className="w-4 h-4" />
-                  <span>Create Account</span>
+                  <span>Créer le compte</span>
                 </div>
               )}
             </Button>
@@ -234,22 +219,22 @@ export default function RegisterForm({ onRegister, onShowLogin }: RegisterFormPr
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
+              Vous avez déjà un compte ?{" "}
               <Button
                 variant="link"
                 className="p-0 h-auto"
                 onClick={onShowLogin}
                 data-testid="button-show-login"
               >
-                Sign In
+                Se connecter
               </Button>
             </p>
           </div>
 
           <div className="mt-4 p-3 bg-muted rounded-lg">
             <p className="text-xs text-muted-foreground">
-              <strong>Student Access:</strong> View courses, grades, attendance records, and billing information. 
-              Need staff or admin access? Contact your system administrator.
+              <strong>Accès étudiant :</strong> Consultez vos cours, notes, présences et factures.
+              Besoin d'un accès staff ou admin ? Contactez votre administrateur système.
             </p>
           </div>
         </CardContent>

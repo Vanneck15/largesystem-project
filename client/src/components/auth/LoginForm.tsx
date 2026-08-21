@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, LogIn, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { login as mockLogin, type AuthUser } from "@/lib/mock-auth";
 
 interface LoginFormProps {
   onLogin: (token: string, user: any) => void;
@@ -14,12 +15,7 @@ interface LoginFormProps {
 }
 
 interface LoginResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
+  user: AuthUser;
   token: string;
 }
 
@@ -30,30 +26,19 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
   const { toast } = useToast();
 
   const loginMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Login failed");
-      }
-      
-      return response.json() as Promise<LoginResponse>;
+    mutationFn: async ({ email, password }: { email: string; password: string }): Promise<LoginResponse> => {
+      return mockLogin(email, password);
     },
     onSuccess: (data) => {
       toast({
-        title: "Login Successful",
-        description: `Welcome back, ${data.user.name}!`,
+        title: "Connexion réussie",
+        description: `Bon retour, ${data.user.name} !`,
       });
       onLogin(data.token, data.user);
     },
     onError: (error: Error) => {
       toast({
-        title: "Login Failed",
+        title: "Échec de connexion",
         description: error.message,
         variant: "destructive",
       });
@@ -64,8 +49,8 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
     e.preventDefault();
     if (!email || !password) {
       toast({
-        title: "Error",
-        description: "Please enter both email and password",
+        title: "Erreur",
+        description: "Merci de renseigner un email et un mot de passe",
         variant: "destructive",
       });
       return;
@@ -80,36 +65,36 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
           <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
             <Building className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">ERP System Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">Connexion au système ERP</CardTitle>
           <CardDescription>
-            Sign in to access your academic, finance, and HR dashboard
+            Accédez à votre tableau de bord académique, financier et RH
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Adresse email</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder="Votre adresse email"
                 required
                 data-testid="input-email"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Votre mot de passe"
                   required
                   data-testid="input-password"
                 />
@@ -129,7 +114,7 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
             {loginMutation.isError && (
               <Alert variant="destructive">
                 <AlertDescription>
-                  {loginMutation.error?.message || "An error occurred during login"}
+                  {loginMutation.error?.message || "Une erreur est survenue lors de la connexion"}
                 </AlertDescription>
               </Alert>
             )}
@@ -143,12 +128,12 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
               {loginMutation.isPending ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Signing In...</span>
+                  <span>Connexion en cours…</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <LogIn className="w-4 h-4" />
-                  <span>Sign In</span>
+                  <span>Se connecter</span>
                 </div>
               )}
             </Button>
@@ -156,26 +141,41 @@ export default function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              Pas encore de compte ?{" "}
               <Button
                 variant="link"
                 className="p-0 h-auto"
                 onClick={onShowRegister}
                 data-testid="button-show-register"
               >
-                Create Account
+                Créer un compte
               </Button>
             </p>
           </div>
 
-          <div className="mt-4 p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground text-center">
-              Demo Accounts:<br />
-              Admin: admin@erp.com<br />
-              Staff: staff@erp.com<br />
-              Student: student@erp.com<br />
-              Password: demo123
-            </p>
+          <div className="mt-4 p-3 bg-muted rounded-lg space-y-2">
+            <p className="text-xs font-medium text-muted-foreground text-center">Comptes de démonstration (mot de passe : demo123)</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Admin", email: "admin@erp.com" },
+                { label: "Staff", email: "staff@erp.com" },
+                { label: "Étudiant", email: "student@erp.com" },
+              ].map((acc) => (
+                <Button
+                  key={acc.email}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-1.5"
+                  onClick={() => {
+                    setEmail(acc.email);
+                    setPassword("demo123");
+                  }}
+                >
+                  {acc.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
